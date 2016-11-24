@@ -1,13 +1,4 @@
 // ----
-// Imports
-
-// el, from koel.js by tjvr
-// https://github.com/tjvr/koel
-const el = window.el
-
-// ----
-
-// ----
 // Retina devices use Stupid Hacks to make everything super high definition,
 // but thankfully you can deal with those Stupid Hacks by multiplying
 // EVERYTHING by window.devicePixelRatio. Always use retfix!
@@ -44,7 +35,8 @@ const App = class {
     this.canvas.height = retfix(window.innerHeight)
     document.body.appendChild(this.canvas)
 
-    this.nodeEditorEl = el()
+    this.nodeEditorEl = document.createElement('div')
+    document.body.appendChild(this.canvas)
   }
 
   execute() {
