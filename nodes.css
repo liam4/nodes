@@ -1,5 +1,9 @@
+body, html {
+  overflow: hidden;
+}
+
 .node-editor {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 250px;
@@ -17,6 +21,7 @@
   font-weight: 30;
 
   user-select: none;
+  cursor: normal;
 }
 
 .node-editor.no-selection {

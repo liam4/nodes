@@ -162,6 +162,11 @@ const App = class App {
         this.scrollY -= evt.movementY
       }
     })
+
+    document.addEventListener('wheel', evt => {
+      this.scrollX -= evt.deltaX
+      this.scrollY -= evt.deltaY
+    })
   }
 
   handleClicked(evt) {
