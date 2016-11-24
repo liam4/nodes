@@ -85,7 +85,6 @@ const observe = {
     let value
     return function(newValue) {
       if (value !== newValue) {
-        // console.log('Bleh:', newValue)
         value = newValue
         cb(newValue)
       }
@@ -97,6 +96,9 @@ const observe = {
 const App = class App {
   constructor() {
     this.nodes = []
+    this.selectedNode = null
+    this.scrollX = 0
+    this.scrollY = 0
 
     this.canvas = document.createElement('canvas')
     Object.assign(this.canvas.style, {
@@ -131,39 +133,68 @@ const App = class App {
     document.body.appendChild(this.nodeEditorEl)
 
     this.initMouseListeners()
+
+    this.deselect()
   }
 
   initMouseListeners() {
-    this.canvas.addEventListener('click', evt => {
-      const mx = evt.clientX
-      const my = evt.clientY
+    this.mouseDown = false
+    this.didScroll = false
 
-      const nodesUnderCursor = this.nodes.filter(node => (
-        mx > node.x && mx < node.x + node.width &&
-        my > node.y && my < node.y + node.height
-      ))
+    document.addEventListener('mousedown', evt => {
+      this.mouseDown = true
+    })
 
-      if (nodesUnderCursor.length) {
-        const node = nodesUnderCursor[nodesUnderCursor.length - 1]
-        this.selectNode(node)
-      } else {
-        this.deselect()
+    document.addEventListener('mouseup', evt => {
+      this.mouseDown = false
+
+      if (!this.didScroll) {
+        this.handleClicked(evt)
+      }
+
+      this.didScroll = false
+    })
+
+    document.addEventListener('mousemove', evt => {
+      if (this.mouseDown) {
+        this.didScroll = true
+        this.scrollX -= evt.movementX
+        this.scrollY -= evt.movementY
       }
     })
   }
 
-  deselect() {
-    if (!this.selectedNode) {
-      return
+  handleClicked(evt) {
+    const mx = evt.clientX
+    const my = evt.clientY
+
+    const nodesUnderCursor = this.nodes.filter(node => (
+      mx > this.scrollifyX(node.x) &&
+      mx < this.scrollifyX(node.x + node.width) &&
+      my > this.scrollifyY(node.y) &&
+      my < this.scrollifyY(node.y + node.height)
+    ))
+
+    if (nodesUnderCursor.length) {
+      const node = nodesUnderCursor[nodesUnderCursor.length - 1]
+      this.selectNode(node)
+    } else {
+      this.deselect()
     }
+  }
 
-    this.selectedNode.selected = false
-
-    this.selectedNodeOutputWatcher()
-    this.selectedNodeNameWatcher()
-    this.selectedNodeDescriptionWatcher()
-
+  deselect() {
     this.nodeEditorEl.classList.add('no-selection')
+
+    if (this.selectedNode) {
+      this.selectedNode.selected = false
+
+      this.selectedNodeOutputWatcher()
+      this.selectedNodeNameWatcher()
+      this.selectedNodeDescriptionWatcher()
+
+      this.selectedNode = null
+    }
   }
 
   selectNode(node) {
@@ -213,7 +244,7 @@ const App = class App {
     this.canvas.height = retfix(window.innerHeight)
 
     const ctx = this.canvas.getContext('2d')
-    ctx.fillStyle = '#203A27'
+    ctx.fillStyle = '#123'
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
 
     // First draw connections..
@@ -229,44 +260,55 @@ const App = class App {
 
         ctx.lineWidth = 5
         drawLine(ctx,
-          node.centerX, node.centerY,
-          input.node.centerX, input.node.centerY)
+          this.scrollifyX(node.centerX),
+          this.scrollifyY(node.centerY),
+          this.scrollifyX(input.node.centerX),
+          this.scrollifyY(input.node.centerY))
       }
     }
 
     // Then draw the actual nodes.
     for (let node of this.nodes) {
       node.draw()
-      ctx.drawImage(node.canvas, retfix(node.x), retfix(node.y))
+      ctx.drawImage(node.canvas,
+        retfix(this.scrollifyX(node.x)), retfix(this.scrollifyY(node.y)))
     }
 
-    // Move the node editor beside the node it's focused on.
-    const x = this.selectedNode.centerX
-    const y = this.selectedNode.centerY
-    Object.assign(this.nodeEditorEl.style, {
-      left: x + 'px',
-      top: y + 'px'
-    })
+    if (this.selectedNode) {
+      // Move the node editor beside the node it's focused on.
+      Object.assign(this.nodeEditorEl.style, {
+        left: this.scrollifyX(this.selectedNode.centerX) + 'px',
+        top: this.scrollifyY(this.selectedNode.centerY) + 'px'
+      })
+
+      // Make the node editor's color be the same as the node it's selected.
+      const selColor = this.selectedNode.color
+      this.nodeEditorEl.style.backgroundColor = (
+        `rgba(${selColor[0]}, ${selColor[1]}, ${selColor[2]}, 0.3)`
+      )
+      this.nodeEditorEl.style.borderColor = (
+        `rgba(${selColor[0]}, ${selColor[1]}, ${selColor[2]}, 0.5)`
+      )
+    }
 
     // Don't let the node editor be part outside of the screen.
-    const bounds = this.nodeEditorEl.getBoundingClientRect()
-    if (bounds.bottom > window.innerHeight)
-      this.nodeEditorEl.style.top = (
-        (window.innerHeight - bounds.height) + 'px'
-      )
-    if (bounds.right > window.innerWidth)
-      this.nodeEditorEl.style.left = (
-        (window.innerWidth - bounds.width) + 'px'
-      )
+    // const bounds = this.nodeEditorEl.getBoundingClientRect()
+    // if (bounds.bottom > window.innerHeight)
+    //   this.nodeEditorEl.style.top = (
+    //     (window.innerHeight - bounds.height) + 'px'
+    //   )
+    // if (bounds.right > window.innerWidth)
+    //   this.nodeEditorEl.style.left = (
+    //     (window.innerWidth - bounds.width) + 'px'
+    //   )
+  }
 
-    // Make the node editor's color be the same as the node it's selected.
-    const selColor = this.selectedNode.color
-    this.nodeEditorEl.style.backgroundColor = (
-      `rgba(${selColor[0]}, ${selColor[1]}, ${selColor[2]}, 0.3)`
-    )
-    this.nodeEditorEl.style.borderColor = (
-      `rgba(${selColor[0]}, ${selColor[1]}, ${selColor[2]}, 0.5)`
-    )
+  scrollifyX(x) {
+    return x - this.scrollX
+  }
+
+  scrollifyY(y) {
+    return y - this.scrollY
   }
 }
 
@@ -379,8 +421,7 @@ echoer.execute = function() {
 }
 app.nodes.push(echoer)
 
-app.selectNode(echoer)
-
+app.deselect()
 battery        .color = [200, 131, 48]
 convertToPulse .color = [225, 169, 26]
 echoer         .color = [138, 35, 215]
