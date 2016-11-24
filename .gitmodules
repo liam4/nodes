@@ -1,0 +1,3 @@
+[submodule "koel"]
+	path = koel
+	url = https://github.com/tjvr/koel
