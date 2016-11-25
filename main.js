@@ -138,26 +138,26 @@ const App = class App {
   }
 
   initMouseListeners() {
-    this.mouseDown = false
-    this.didScroll = false
+    let mouseDown = false
+    let didScroll = false
 
     document.addEventListener('mousedown', evt => {
-      this.mouseDown = true
+      mouseDown = true
     })
 
     document.addEventListener('mouseup', evt => {
-      this.mouseDown = false
+      mouseDown = false
 
-      if (!this.didScroll) {
+      if (!didScroll) {
         this.handleClicked(evt)
       }
 
-      this.didScroll = false
+      didScroll = false
     })
 
     document.addEventListener('mousemove', evt => {
-      if (this.mouseDown) {
-        this.didScroll = true
+      if (mouseDown) {
+        didScroll = true
         this.scrollX -= evt.movementX
         this.scrollY -= evt.movementY
       }
