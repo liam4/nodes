@@ -108,6 +108,7 @@ const App = class App {
     this.nodes = []
     this.selectedNode = null
     this.draggingNode = null
+    this.draggingOutput = null
     this.scrollX = 0
     this.scrollY = 0
     this.mouseX = 0
@@ -156,9 +157,11 @@ const App = class App {
 
     let mouseDown = false
     let didDrag = false
+    let downEvt = null
 
     document.addEventListener('mousedown', evt => {
       mouseDown = true
+      downEvt = evt
     })
 
     document.addEventListener('mouseup', evt => {
@@ -183,7 +186,7 @@ const App = class App {
 
         if (dragAmount > dragThreshold) {
           if (!didDrag) {
-            this.handleDragStart(evt)
+            this.handleDragStart(downEvt)
           }
 
           didDrag = true
@@ -216,14 +219,29 @@ const App = class App {
   // Called when the user releases the mouse cursor.
   handleMouseUp(evt) {
     this.draggingNode = null
+    this.draggingOutput = null
   }
 
   // Called when the user starts dragging. (Specifically, the first tick of a
   // drag.)
+  //
+  // Note that drags won't start until the mouse is moved past a certain
+  // threshold (to make clicking easier). However, handleDragStart will not
+  // be passed a mouse-dragged event but rather the OLD mouse-down event for
+  // when the mouse was pressed down before the drag threshold was passed.
   handleDragStart(evt) {
-    const nodeUnderCursor = this.getNodeUnderPos(evt.clientX, evt.clientY)
+    const mx = evt.clientX
+    const my = evt.clientY
+
+    const nodeUnderCursor = this.getNodeUnderPos(mx, my)
+    const outputUnderCursor = this.getOutputUnderPos(mx, my)
     if (nodeUnderCursor) {
       this.draggingNode = nodeUnderCursor
+    } else if (outputUnderCursor) {
+      this.draggingOutput = {
+        node: outputUnderCursor,
+        pos: [this.mouseX, this.mouseY]
+      }
     }
   }
 
@@ -232,6 +250,9 @@ const App = class App {
     if (this.draggingNode) {
       this.draggingNode.x += evt.movementX
       this.draggingNode.y += evt.movementY
+    } else if (this.draggingOutput) {
+      this.draggingOutput.pos[0] += evt.movementX
+      this.draggingOutput.pos[1] += evt.movementY
     } else {
       this.handleScrolled({
         deltaX: evt.movementX,
@@ -430,6 +451,15 @@ const App = class App {
       ctx.filter = 'blur(3px)'
       drawArc(ctx, outX, outY, 8, 0.5 * Math.PI, 1.5 * Math.PI, true)
       ctx.filter = 'none'
+    }
+
+    if (this.draggingOutput) {
+      ctx.strokeStyle = 'rgba(75, 150, 75, 0.5)'
+      ctx.lineWidth = 5
+      const [startX, startY] = this.scrollify(this.getOutputWirePos(
+        this.draggingOutput.node))
+      const [endX, endY] = this.scrollify(this.draggingOutput.pos)
+      drawLine(ctx, startX, startY, endX, endY)
     }
 
     // Don't let the node editor be part outside of the screen.
