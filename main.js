@@ -198,6 +198,8 @@ const App = class App {
     })
   }
 
+  // Called when the user releases the mouse cursor, if tbe cursor wasn't
+  // dragged.
   handleClicked(evt) {
     const mx = evt.clientX
     const my = evt.clientY
@@ -211,10 +213,13 @@ const App = class App {
     }
   }
 
+  // Called when the user releases the mouse cursor.
   handleMouseUp(evt) {
     this.draggingNode = null
   }
 
+  // Called when the user starts dragging. (Specifically, the first tick of a
+  // drag.)
   handleDragStart(evt) {
     const nodeUnderCursor = this.getNodeUnderPos(evt.clientX, evt.clientY)
     if (nodeUnderCursor) {
@@ -222,6 +227,7 @@ const App = class App {
     }
   }
 
+  // Called when the user moves the mouse cursor while it's pressed down.
   handleDragged(evt) {
     if (this.draggingNode) {
       this.draggingNode.x += evt.movementX
@@ -234,11 +240,14 @@ const App = class App {
     }
   }
 
+  // Called when the user scrolls using the mousewheel or a trackpad.
   handleScrolled(evt) {
     this.scrollX -= evt.deltaX
     this.scrollY -= evt.deltaY
   }
 
+  // Gets the node whose body is under the given position. If no such node
+  // exists, return null.
   getNodeUnderPos(x, y) {
     const nodes = this.nodes.filter(node => (
       x > this.scrollifyX(node.x) &&
@@ -254,6 +263,8 @@ const App = class App {
     }
   }
 
+  // Gets the node whose output wire connection is under the given position.
+  // If no such node exists, return null.
   getOutputUnderPos(x, y) {
     const nodes = this.nodes.filter(node => {
       const [outX, outY] = this.scrollify(this.getOutputWirePos(node))
@@ -270,6 +281,7 @@ const App = class App {
     }
   }
 
+  // Deselects a selected node and hides the node editor.
   deselect() {
     this.nodeEditorEl.classList.add('no-selection')
 
@@ -284,6 +296,7 @@ const App = class App {
     }
   }
 
+  // Select a node. Opens the node editor.
   selectNode(node) {
     this.deselect()
 
@@ -310,7 +323,8 @@ const App = class App {
     true)
   }
 
-  static getValueOfInput(input) {
+  // Gets the value of a node input.
+  getValueOfInput(input) {
     if (input.type === 'node') {
       return input.node.output
     } else if (input.type === 'value') {
@@ -318,14 +332,16 @@ const App = class App {
     }
   }
 
+  // Executes every node once, in no particular order.
   execute() {
     for (let node of this.nodes) {
-      if (App.getValueOfInput(node.inputs[0])) {
+      if (this.getValueOfInput(node.inputs[0])) {
         node.execute()
       }
     }
   }
 
+  // Gets the output wire connection position of a node.
   getOutputWirePos(node) {
     return [
       node.x + node.width,
@@ -333,6 +349,8 @@ const App = class App {
     ]
   }
 
+  // Gets the input wire conenction position of a node, given the input's
+  // index.
   getInputWirePos(node, i) {
     return [
       node.x,
@@ -344,6 +362,7 @@ const App = class App {
     ]
   }
 
+  // Draws everything. Should be called once every browser animation frame.
   draw() {
     this.canvas.width = retfix(window.innerWidth)
     this.canvas.height = retfix(window.innerHeight)
@@ -425,14 +444,17 @@ const App = class App {
     //   )
   }
 
+  // Scrollify an X position.
   scrollifyX(x) {
     return x - this.scrollX
   }
 
+  // Scrollify a Y position.
   scrollifyY(y) {
     return y - this.scrollY
   }
 
+  // Scrollify an array containing an X/Y position.
   scrollify([x, y]) {
     return [
       this.scrollifyX(x),
@@ -473,7 +495,7 @@ App.Node = class Node {
   }
 
   getInput(n) {
-    return App.getValueOfInput(this.inputs[n])
+    return App.prototype.getValueOfInput(this.inputs[n])
   }
 
   get centerX() {
@@ -547,6 +569,7 @@ echoer.inputs[0] = {type: 'node', node: convertToPulse}
 echoer.inputs[1] = {type: 'node', node: textNode}
 echoer.execute = function() {
   this.output = this.getInput(1)
+  console.log(this.output)
 }
 app.nodes.push(echoer)
 
