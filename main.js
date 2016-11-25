@@ -307,7 +307,9 @@ const App = class App {
     for (let node of this.nodes) {
       for (let input of node.inputs.filter(inp => inp.type === 'node')) {
 
-        // Powered connections should have a color..
+        const i = node.inputs.indexOf(input)
+
+        // Powered connections should have a lighter color..
         if (input.node.output) {
           ctx.strokeStyle = '#5A5'
         } else {
@@ -315,11 +317,21 @@ const App = class App {
         }
 
         ctx.lineWidth = 5
+
+        const startX = input.node.x + input.node.width
+        const startY = input.node.centerY
+
+        const endX = node.x
+        const endY = (
+          node.y +
+
+          0.15 * node.height +
+          ((0.7 * node.height) / node.inputs.length) * (i + 0.5)
+        )
+
         drawLine(ctx,
-          this.scrollifyX(node.centerX),
-          this.scrollifyY(node.centerY),
-          this.scrollifyX(input.node.centerX),
-          this.scrollifyY(input.node.centerY))
+          this.scrollifyX(startX), this.scrollifyY(startY),
+          this.scrollifyX(endX), this.scrollifyY(endY))
       }
     }
 
@@ -419,8 +431,8 @@ const app = new App()
 const battery = new App.Node()
 battery.name = 'Battery'
 battery.description = 'Always outputs true'
-battery.x = 120
-battery.y = 30
+battery.x = 100
+battery.y = 100
 battery.execute = function() {
   this.output = true
 }
@@ -429,8 +441,8 @@ app.nodes.push(battery)
 const convertToPulse = new App.Node()
 convertToPulse.name = 'Pulsifier'
 convertToPulse.description = 'Converts input to a pulse'
-convertToPulse.x = 80
-convertToPulse.y = 90
+convertToPulse.x = 200
+convertToPulse.y = 50
 convertToPulse.inputs[0] = {type: 'node', node: battery}
 convertToPulse.execute = function() {
   if (this.wasTriggered) {
@@ -454,7 +466,7 @@ const textNode = new App.Node()
 textNode.name = 'Random Word Generator'
 textNode.description = 'Outputs a random word'
 textNode.x = 200
-textNode.y = 90
+textNode.y = 150
 textNode.words = ['Apple', 'Banana', 'Chair', 'Rainbow', 'Unicorn']
 textNode.inputs[0] = {type: 'node', node: battery}
 textNode.execute = function() {
@@ -468,8 +480,8 @@ app.nodes.push(textNode)
 const echoer = new App.Node()
 echoer.name = 'Echoer'
 echoer.description = 'Echoes its input'
-echoer.x = 150
-echoer.y = 150
+echoer.x = 300
+echoer.y = 200
 echoer.inputs[0] = {type: 'node', node: convertToPulse}
 echoer.inputs[1] = {type: 'node', node: textNode}
 echoer.execute = function() {
