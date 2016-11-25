@@ -251,8 +251,7 @@ const App = class App {
       this.draggingNode.x += evt.movementX
       this.draggingNode.y += evt.movementY
     } else if (this.draggingOutput) {
-      this.draggingOutput.pos[0] += evt.movementX
-      this.draggingOutput.pos[1] += evt.movementY
+      this.draggingOutput.pos = [evt.clientX, evt.clientY]
     } else {
       this.handleScrolled({
         deltaX: evt.movementX,
