@@ -142,7 +142,7 @@ const App = class App {
     let dragAmount = 0
 
     let mouseDown = false
-    let didScroll = false
+    let didDrag = false
 
     document.addEventListener('mousedown', evt => {
       mouseDown = true
@@ -151,11 +151,11 @@ const App = class App {
     document.addEventListener('mouseup', evt => {
       mouseDown = false
 
-      if (!didScroll) {
+      if (!didDrag) {
         this.handleClicked(evt)
       }
 
-      didScroll = false
+      didDrag = false
       dragAmount = 0
     })
 
@@ -164,9 +164,9 @@ const App = class App {
         dragAmount += Math.abs(evt.movementX) + Math.abs(evt.movementY)
 
         if (dragAmount > dragThreshold) {
-          didScroll = true
-          this.scrollX -= evt.movementX
-          this.scrollY -= evt.movementY
+          didDrag = true
+
+          this.handleDragged(evt)
         }
       }
     })
@@ -194,6 +194,11 @@ const App = class App {
     } else {
       this.deselect()
     }
+  }
+
+  handleDragged(evt) {
+    this.scrollX -= evt.movementX
+    this.scrollY -= evt.movementY
   }
 
   deselect() {
