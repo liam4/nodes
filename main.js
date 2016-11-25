@@ -97,6 +97,7 @@ const App = class App {
   constructor() {
     this.nodes = []
     this.selectedNode = null
+    this.draggingNode = null
     this.scrollX = 0
     this.scrollY = 0
 
@@ -149,6 +150,8 @@ const App = class App {
     })
 
     document.addEventListener('mouseup', evt => {
+      this.handleMouseUp(evt)
+
       mouseDown = false
 
       if (!didDrag) {
@@ -164,6 +167,10 @@ const App = class App {
         dragAmount += Math.abs(evt.movementX) + Math.abs(evt.movementY)
 
         if (dragAmount > dragThreshold) {
+          if (!didDrag) {
+            this.handleDragStart(evt)
+          }
+
           didDrag = true
 
           this.handleDragged(evt)
@@ -180,33 +187,56 @@ const App = class App {
     const mx = evt.clientX
     const my = evt.clientY
 
-    const nodesUnderCursor = this.nodes.filter(node => (
-      mx > this.scrollifyX(node.x) &&
-      mx < this.scrollifyX(node.x + node.width) &&
-      my > this.scrollifyY(node.y) &&
-      my < this.scrollifyY(node.y + node.height)
-    ))
-
-    const nodeUnderCursor = nodesUnderCursor[nodesUnderCursor.length - 1]
+    const nodeUnderCursor = this.getNodeUnderPos(mx, my)
 
     if (nodeUnderCursor && nodeUnderCursor !== this.selectedNode) {
-      const node = nodesUnderCursor[nodesUnderCursor.length - 1]
-      this.selectNode(node)
+      this.selectNode(nodeUnderCursor)
     } else {
       this.deselect()
     }
   }
 
+  handleMouseUp(evt) {
+    this.draggingNode = null
+  }
+
+  handleDragStart(evt) {
+    const nodeUnderCursor = this.getNodeUnderPos(evt.clientX, evt.clientY)
+    if (nodeUnderCursor) {
+      this.draggingNode = nodeUnderCursor
+    }
+  }
+
   handleDragged(evt) {
-    this.handleScrolled({
-      deltaX: evt.movementX,
-      deltaY: evt.movementY
-    })
+    if (this.draggingNode) {
+      this.draggingNode.x += evt.movementX
+      this.draggingNode.y += evt.movementY
+    } else {
+      this.handleScrolled({
+        deltaX: evt.movementX,
+        deltaY: evt.movementY
+      })
+    }
   }
 
   handleScrolled(evt) {
     this.scrollX -= evt.deltaX
     this.scrollY -= evt.deltaY
+  }
+
+  getNodeUnderPos(x, y) {
+    const nodes = this.nodes.filter(node => (
+      x > this.scrollifyX(node.x) &&
+      x < this.scrollifyX(node.x + node.width) &&
+      y > this.scrollifyY(node.y) &&
+      y < this.scrollifyY(node.y + node.height)
+    ))
+
+    if (nodes.length) {
+      return nodes[nodes.length - 1]
+    } else {
+      return null
+    }
   }
 
   deselect() {
