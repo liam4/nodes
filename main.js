@@ -218,6 +218,19 @@ const App = class App {
 
   // Called when the user releases the mouse cursor.
   handleMouseUp(evt) {
+    if (this.draggingOutput) {
+      const inputUnderWire = this.getInputUnderPos(
+        ...this.draggingOutput.pos)
+
+      if (inputUnderWire) {
+        console.log(inputUnderWire)
+        inputUnderWire.node.inputs[inputUnderWire.i] = {
+          type: 'node',
+          node: this.draggingOutput.node
+        }
+      }
+    }
+
     this.draggingNode = null
     this.draggingOutput = null
   }
