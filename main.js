@@ -17,6 +17,16 @@ const drawLine = function(ctx, x1, y1, x2, y2) {
 const drawRect = function(ctx, x, y, w, h) {
   ctx.fillRect(retfix(x), retfix(y), retfix(w), retfix(h))
 }
+
+const drawArc = function(ctx, x, y, r, sa, ea, ccw) {
+  ctx.beginPath()
+  ctx.arc(retfix(x), retfix(y), retfix(r), sa, ea, ccw)
+  ctx.fill()
+}
+
+const drawImage = function(ctx, image, x, y) {
+  ctx.drawImage(image, retfix(x), retfix(y))
+}
 // ----
 
 // ----
@@ -100,6 +110,8 @@ const App = class App {
     this.draggingNode = null
     this.scrollX = 0
     this.scrollY = 0
+    this.mouseX = 0
+    this.mouseY = 0
 
     this.canvas = document.createElement('canvas')
     Object.assign(this.canvas.style, {
@@ -163,6 +175,9 @@ const App = class App {
     })
 
     document.addEventListener('mousemove', evt => {
+      this.mouseX = evt.clientX
+      this.mouseY = evt.clientY
+
       if (mouseDown) {
         dragAmount += Math.abs(evt.movementX) + Math.abs(evt.movementY)
 
@@ -231,6 +246,22 @@ const App = class App {
       y > this.scrollifyY(node.y) &&
       y < this.scrollifyY(node.y + node.height)
     ))
+
+    if (nodes.length) {
+      return nodes[nodes.length - 1]
+    } else {
+      return null
+    }
+  }
+
+  getOutputUnderPos(x, y) {
+    const nodes = this.nodes.filter(node => {
+      const [outX, outY] = this.scrollify(this.getOutputWirePos(node))
+      return (
+        x > outX && x < outX + 10 &&
+        y > outY - 10 && y < outY + 10
+      )
+    })
 
     if (nodes.length) {
       return nodes[nodes.length - 1]
@@ -336,20 +367,20 @@ const App = class App {
 
         ctx.lineWidth = 5
 
-        const [startX, startY] = this.getOutputWirePos(input.node)
-        const [endX, endY] = this.getInputWirePos(node, i)
+        const [startX, startY] = this.scrollify(
+          this.getOutputWirePos(input.node))
+        const [endX, endY] = this.scrollify(
+          this.getInputWirePos(node, i))
 
-        drawLine(ctx,
-          this.scrollifyX(startX), this.scrollifyY(startY),
-          this.scrollifyX(endX), this.scrollifyY(endY))
+        drawLine(ctx, startX, startY, endX, endY)
       }
     }
 
     // Then draw the actual nodes.
     for (let node of this.nodes) {
       node.draw()
-      ctx.drawImage(node.canvas,
-        retfix(this.scrollifyX(node.x)), retfix(this.scrollifyY(node.y)))
+      drawImage(ctx, node.canvas,
+        this.scrollifyX(node.x), this.scrollifyY(node.y))
     }
 
     if (this.selectedNode) {
@@ -367,6 +398,17 @@ const App = class App {
       this.nodeEditorEl.style.borderColor = (
         `rgba(${selColor[0]}, ${selColor[1]}, ${selColor[2]}, 0.5)`
       )
+    }
+
+    const outputUnderCursor = this.getOutputUnderPos(
+      this.mouseX, this.mouseY)
+
+    if (outputUnderCursor) {
+      const [outX, outY] = this.scrollify(
+        this.getOutputWirePos(outputUnderCursor))
+
+      ctx.fillStyle = 'white'
+      drawArc(ctx, outX, outY, 8, 0.5 * Math.PI, 1.5 * Math.PI, true)
     }
 
     // Don't let the node editor be part outside of the screen.
@@ -387,6 +429,13 @@ const App = class App {
 
   scrollifyY(y) {
     return y - this.scrollY
+  }
+
+  scrollify([x, y]) {
+    return [
+      this.scrollifyX(x),
+      this.scrollifyY(y)
+    ]
   }
 }
 
