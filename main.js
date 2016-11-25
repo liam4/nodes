@@ -408,7 +408,9 @@ const App = class App {
         this.getOutputWirePos(outputUnderCursor))
 
       ctx.fillStyle = 'white'
+      ctx.filter = 'blur(3px)'
       drawArc(ctx, outX, outY, 8, 0.5 * Math.PI, 1.5 * Math.PI, true)
+      ctx.filter = 'none'
     }
 
     // Don't let the node editor be part outside of the screen.
