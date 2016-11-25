@@ -187,7 +187,9 @@ const App = class App {
       my < this.scrollifyY(node.y + node.height)
     ))
 
-    if (nodesUnderCursor.length) {
+    const nodeUnderCursor = nodesUnderCursor[nodesUnderCursor.length - 1]
+
+    if (nodeUnderCursor && nodeUnderCursor !== this.selectedNode) {
       const node = nodesUnderCursor[nodesUnderCursor.length - 1]
       this.selectNode(node)
     } else {
