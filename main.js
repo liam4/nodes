@@ -302,6 +302,27 @@ const App = class App {
     }
   }
 
+  // Gets the input which is under the given position. If no such node
+  // exists, return null. The return object is an object in the form of
+  // {inputIndex, inputObject, parentNode}.
+  getInputUnderPos(x, y) {
+    const objects = this.nodes.map(node => (
+      node.inputs.map((input, i) => {
+        const [posX, posY] = this.scrollify(this.getInputWirePos(node, i))
+        return (
+          x > posX - 10 && x < posX &&
+          y > posY - 10 && y < posY + 10
+        ) ? {input, i, node} : false
+      }).filter(input => !!input)
+    )).reduce((arr, inputs) => arr.concat(inputs), [])
+
+    if (objects.length) {
+      return objects[objects.length - 1]
+    } else {
+      return null
+    }
+  }
+
   // Deselects a selected node and hides the node editor.
   deselect() {
     this.nodeEditorEl.classList.add('no-selection')
@@ -346,7 +367,9 @@ const App = class App {
 
   // Gets the value of a node input.
   getValueOfInput(input) {
-    if (input.type === 'node') {
+    if (typeof input !== 'object') {
+      return input
+    } else if (input.type === 'node') {
       return input.node.output
     } else if (input.type === 'value') {
       return input.value
@@ -394,7 +417,9 @@ const App = class App {
 
     // First draw connections..
     for (let node of this.nodes) {
-      for (let input of node.inputs.filter(inp => inp.type === 'node')) {
+      const nodeInputs = node.inputs.filter(
+        inp => inp && inp.type === 'node')
+      for (let input of nodeInputs) {
 
         const i = node.inputs.indexOf(input)
 
@@ -440,6 +465,8 @@ const App = class App {
       )
     }
 
+    // If there's an output wire source thing under our cursor, draw a
+    // glowing semicircle there to show that.
     const outputUnderCursor = this.getOutputUnderPos(
       this.mouseX, this.mouseY)
 
@@ -453,6 +480,7 @@ const App = class App {
       ctx.filter = 'none'
     }
 
+    // If we're dragging an output wire, draw that wire.
     if (this.draggingOutput) {
       ctx.strokeStyle = 'rgba(75, 150, 75, 0.5)'
       ctx.lineWidth = 5
@@ -460,6 +488,18 @@ const App = class App {
         this.draggingOutput.node))
       const [endX, endY] = this.scrollify(this.draggingOutput.pos)
       drawLine(ctx, startX, startY, endX, endY)
+
+      const inputUnderCursor = this.getInputUnderPos(
+        this.mouseX, this.mouseY)
+
+      if (inputUnderCursor) {
+        const [inputX, inputY] = this.scrollify(this.getInputWirePos(
+          inputUnderCursor.node, inputUnderCursor.i))
+        ctx.fillStyle = 'white'
+        ctx.filter = 'blur(3px)'
+        drawArc(ctx, inputX, inputY, 8, 0.5 * Math.PI, 1.5 * Math.PI, false)
+        ctx.filter = 'none'
+      }
     }
 
     // Don't let the node editor be part outside of the screen.
@@ -595,8 +635,11 @@ echoer.name = 'Echoer'
 echoer.description = 'Echoes its input'
 echoer.x = 300
 echoer.y = 200
-echoer.inputs[0] = {type: 'node', node: convertToPulse}
-echoer.inputs[1] = {type: 'node', node: textNode}
+echoer.inputs = [
+  {type: 'node', node: convertToPulse},
+  undefined
+]
+// echoer.inputs[1] = {type: 'node', node: textNode}
 echoer.execute = function() {
   this.output = this.getInput(1)
   console.log(this.output)
