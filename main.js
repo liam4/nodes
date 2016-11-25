@@ -295,6 +295,24 @@ const App = class App {
     }
   }
 
+  getOutputWirePos(node) {
+    return [
+      node.x + node.width,
+      node.centerY
+    ]
+  }
+
+  getInputWirePos(node, i) {
+    return [
+      node.x,
+      (
+        node.y +
+        0.15 * node.height +
+        ((0.7 * node.height) / node.inputs.length) * (i + 0.5)
+      )
+    ]
+  }
+
   draw() {
     this.canvas.width = retfix(window.innerWidth)
     this.canvas.height = retfix(window.innerHeight)
@@ -318,16 +336,8 @@ const App = class App {
 
         ctx.lineWidth = 5
 
-        const startX = input.node.x + input.node.width
-        const startY = input.node.centerY
-
-        const endX = node.x
-        const endY = (
-          node.y +
-
-          0.15 * node.height +
-          ((0.7 * node.height) / node.inputs.length) * (i + 0.5)
-        )
+        const [startX, startY] = this.getOutputWirePos(input.node)
+        const [endX, endY] = this.getInputWirePos(node, i)
 
         drawLine(ctx,
           this.scrollifyX(startX), this.scrollifyY(startY),
