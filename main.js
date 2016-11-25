@@ -172,8 +172,7 @@ const App = class App {
     })
 
     document.addEventListener('wheel', evt => {
-      this.scrollX -= evt.deltaX
-      this.scrollY -= evt.deltaY
+      this.handleScrolled(evt)
     })
   }
 
@@ -197,8 +196,15 @@ const App = class App {
   }
 
   handleDragged(evt) {
-    this.scrollX -= evt.movementX
-    this.scrollY -= evt.movementY
+    this.handleScrolled({
+      deltaX: evt.movementX,
+      deltaY: evt.movementY
+    })
+  }
+
+  handleScrolled(evt) {
+    this.scrollX -= evt.deltaX
+    this.scrollY -= evt.deltaY
   }
 
   deselect() {
