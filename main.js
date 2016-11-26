@@ -276,7 +276,10 @@ const App = class App {
       this.draggingNode.x += evt.movementX
       this.draggingNode.y += evt.movementY
     } else if (this.draggingOutput) {
-      this.draggingOutput.pos = [evt.clientX, evt.clientY]
+      this.draggingOutput.pos = [
+        evt.clientX,
+        evt.clientY
+      ]
     } else {
       this.handleScrolled({
         deltaX: evt.movementX,
@@ -510,7 +513,7 @@ const App = class App {
       ctx.lineWidth = 5
       const [startX, startY] = this.scrollify(this.getOutputWirePos(
         this.draggingOutput.node))
-      const [endX, endY] = this.scrollify(this.draggingOutput.pos)
+      const [endX, endY] = this.draggingOutput.pos
       drawLine(ctx, startX, startY, endX, endY)
 
       const inputUnderCursor = this.getInputUnderPos(
