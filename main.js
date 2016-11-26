@@ -208,11 +208,24 @@ const App = class App {
     const my = evt.clientY
 
     const nodeUnderCursor = this.getNodeUnderPos(mx, my)
+    const inputUnderCursor = this.getInputUnderPos(mx, my)
 
     if (nodeUnderCursor && nodeUnderCursor !== this.selectedNode) {
       this.selectNode(nodeUnderCursor)
     } else {
-      this.deselect()
+      // If you're removing an input to this node, don't hide the node
+      // editor, that way it's easier to see a changed output right away.
+      if (!(
+        inputUnderCursor &&
+        inputUnderCursor.node === this.selectedNode
+      )) {
+        this.deselect()
+      }
+    }
+
+    if (inputUnderCursor && inputUnderCursor.input
+        && inputUnderCursor.input.type === 'node') {
+      inputUnderCursor.node.inputs[inputUnderCursor.i] = undefined
     }
   }
 
@@ -223,7 +236,6 @@ const App = class App {
         ...this.draggingOutput.pos)
 
       if (inputUnderWire) {
-        console.log(inputUnderWire)
         inputUnderWire.node.inputs[inputUnderWire.i] = {
           type: 'node',
           node: this.draggingOutput.node
@@ -316,7 +328,7 @@ const App = class App {
 
   // Gets the input which is under the given position. If no such node
   // exists, return null. The return object is an object in the form of
-  // {inputIndex, inputObject, parentNode}.
+  // {i: inputIndex, input: inputObject, node: parentNode}.
   getInputUnderPos(x, y) {
     const objects = this.nodes.map(node => (
       node.inputs.map((input, i) => {
