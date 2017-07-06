@@ -46,6 +46,30 @@ app.nodes.push(echoer)
 app.appendElementsTo(document.body)
 app.deselect()
 
+const fakePalette = document.createElement('div')
+fakePalette.id = 'fake-palette'
+Object.assign(fakePalette.style, {
+  position: 'fixed',
+  top: '30px',
+  left: '30px'
+})
+document.body.appendChild(fakePalette)
+
+const addPaletteButton = (name, nodeClass) => {
+  const btn = document.createElement('button')
+  btn.appendChild(document.createTextNode(name))
+  btn.addEventListener('click', () => {
+    const node = Reflect.construct(nodeClass, [])
+    node.x = app.scrollX + 50 + Math.random() * 80
+    node.y = app.scrollY + 50 + Math.random() * 80
+    app.nodes.push(node)
+  })
+  fakePalette.appendChild(btn)
+}
+
+addPaletteButton('Battery', App.nodes.BatteryNode)
+addPaletteButton('Echoer', App.nodes.EchoerNode)
+
 const drawLoop = function() {
   app.fillParent()
   app.draw()
