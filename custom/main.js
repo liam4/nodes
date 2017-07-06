@@ -25,10 +25,9 @@ app.nodes.push(cycler)
 const greaterThanHalf = new App.nodes.ComparisonNode()
 greaterThanHalf.x = 300
 greaterThanHalf.y = 50
-greaterThanHalf.inputs[0] = {type: 'node', node: battery}
-greaterThanHalf.inputs[1] = {type: 'value', value: '>'}
-greaterThanHalf.inputs[2] = {type: 'node', node: cycler}
-greaterThanHalf.inputs[3] = {type: 'value', value: 0.5}
+greaterThanHalf.inputs[0] = {type: 'value', value: '>'}
+greaterThanHalf.inputs[1] = {type: 'node', node: cycler}
+greaterThanHalf.inputs[2] = {type: 'value', value: 0.5}
 app.nodes.push(greaterThanHalf)
 
 const convertToPulse = new App.nodes.PulsifierNode()

@@ -83,6 +83,27 @@ App.nodes = {
     }
   },
 
+  AdderNode: class extends App.Node {
+    constructor() {
+      super()
+
+      Object.assign(this, {
+        name: 'Adder',
+        description: 'Adds two numbers',
+        color: COLOR_OPERATORS
+      })
+
+      this.inputSchema = [
+        {name: 'First value', type: 'number'},
+        {name: 'Second value', type: 'number'}
+      ]
+    }
+
+    execute() {
+      this.output = this.getInput(0) + this.getInput(1)
+    }
+  },
+
   NumberCyclerNode: class extends App.Node {
     constructor() {
       super()
@@ -132,7 +153,6 @@ App.nodes = {
       })
 
       this.inputSchema = [
-        {name: 'Activated?', type: 'boolean'},
         {name: 'Operator', type: 'string', select: ['<', '>', '=']},
         {name: 'First value', type: 'number'},
         {name: 'Second value', type: 'number'}
@@ -140,18 +160,16 @@ App.nodes = {
     }
 
     execute() {
-      if (this.getInput(0)) {
-        const operator = this.getInput(1)
-        const value1 = this.getInput(2)
-        const value2 = this.getInput(3)
+      const operator = this.getInput(0)
+      const value1 = this.getInput(1)
+      const value2 = this.getInput(2)
 
-        if (operator === '=') {
-          this.output = value1 === value2
-        } else if (operator === '<') {
-          this.output = value1 < value2
-        } else if (operator === '>') {
-          this.output = value1 > value2
-        }
+      if (operator === '=') {
+        this.output = value1 === value2
+      } else if (operator === '<') {
+        this.output = value1 < value2
+      } else if (operator === '>') {
+        this.output = value1 > value2
       }
     }
   },
@@ -167,7 +185,6 @@ App.nodes = {
       })
 
       this.inputSchema = [
-        {name: 'Activated?', type: 'boolean'},
         {name: 'Word list', type: 'string'}
       ]
     }
