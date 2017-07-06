@@ -43,9 +43,11 @@ echoer.inputs[0] = {type: 'node', node: convertToPulse}
 echoer.inputs[1] = {type: 'node', node: textNode}
 app.nodes.push(echoer)
 
+app.appendElementsTo(document.body)
 app.deselect()
 
 const drawLoop = function() {
+  app.fillParent()
   app.draw()
   requestAnimationFrame(drawLoop)
 }

@@ -1,5 +1,6 @@
 // TODO: Wire glow-bubbles shouldn't appear when we're dragging a node.
 // TODO: Value-input controls.
+// TODO: A palette, duh.
 
 // ----
 // Retina devices use Stupid Hacks to make everything super high definition,
@@ -115,6 +116,8 @@ const App = class App {
     this.scrollY = 0
     this.mouseX = 0
     this.mouseY = 0
+    this.canvasWidth = 0
+    this.canvasHeight = 0
 
     this.canvas = document.createElement('canvas')
     Object.assign(this.canvas.style, {
@@ -124,7 +127,6 @@ const App = class App {
       width: '100vw',
       height: '100vh'
     })
-    document.body.appendChild(this.canvas)
 
     this.nodeEditorEl = document.createElement('div')
     this.nodeEditorEl.classList.add('node-editor')
@@ -146,11 +148,15 @@ const App = class App {
     outputLabel.appendChild(this.outputInputEl)
     this.nodeEditorEl.appendChild(outputLabel)
 
-    document.body.appendChild(this.nodeEditorEl)
-
     this.initMouseListeners()
 
     this.deselect()
+  }
+
+  // Appends important DOM elements.
+  appendElementsTo(parent) {
+    parent.appendChild(this.canvas)
+    parent.appendChild(this.nodeEditorEl)
   }
 
   initMouseListeners() {
@@ -435,8 +441,10 @@ const App = class App {
 
   // Draws everything. Should be called once every browser animation frame.
   draw() {
-    this.canvas.width = retfix(window.innerWidth)
-    this.canvas.height = retfix(window.innerHeight)
+    this.canvas.width = retfix(this.canvasWidth)
+    this.canvas.height = retfix(this.canvasHeight)
+    this.canvas.style.width = this.canvasWidth + 'px'
+    this.canvas.style.height = this.canvasHeight + 'px'
 
     const ctx = this.canvas.getContext('2d')
     ctx.fillStyle = '#123'
@@ -541,17 +549,25 @@ const App = class App {
     //   )
   }
 
-  // Scrollify an X position.
+  // Makes the app canvas fill its parent element.
+  fillParent() {
+    const parent = this.canvas.parentNode
+    const bounds = parent.getBoundingClientRect()
+    this.canvasWidth = bounds.width
+    this.canvasHeight = bounds.height
+  }
+
+  // Scrollifies an X position.
   scrollifyX(x) {
     return x - this.scrollX
   }
 
-  // Scrollify a Y position.
+  // Scrollifies a Y position.
   scrollifyY(y) {
     return y - this.scrollY
   }
 
-  // Scrollify an array containing an X/Y position.
+  // Scrollifies an array containing an X/Y position.
   scrollify([x, y]) {
     return [
       this.scrollifyX(x),
