@@ -8,8 +8,9 @@ app.nodes.push(battery)
 const textNode = new App.nodes.RandomWordGeneratorNode()
 textNode.x = 200
 textNode.y = 150
-textNode.words = ['Apple', 'Banana', 'Chair', 'Rainbow', 'Unicorn']
 textNode.inputs[0] = {type: 'node', node: battery}
+textNode.inputs[1] = {
+  type: 'value', value: 'Apple,Banana,Chair,Rainbow,Unicorn'}
 app.nodes.push(textNode)
 
 const cycler = new App.nodes.NumberCyclerNode()
@@ -68,7 +69,11 @@ const addPaletteButton = (name, nodeClass) => {
 }
 
 addPaletteButton('Battery', App.nodes.BatteryNode)
+addPaletteButton('Pulsifier', App.nodes.PulsifierNode)
 addPaletteButton('Echoer', App.nodes.EchoerNode)
+addPaletteButton('Number Cycler', App.nodes.NumberCyclerNode)
+addPaletteButton('Comparison', App.nodes.ComparisonNode)
+addPaletteButton('Random Word Generator', App.nodes.RandomWordGeneratorNode)
 
 const drawLoop = function() {
   app.fillParent()

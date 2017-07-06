@@ -131,13 +131,15 @@ const App = class App {
     this.nodeEditorEl = document.createElement('div')
     this.nodeEditorEl.classList.add('node-editor')
 
-    this.nodeEditorNameEl = document.createElement('div')
+    this.nodeEditorNameEl = document.createElement('h1')
     this.nodeEditorNameEl.classList.add('node-editor-name')
     this.nodeEditorEl.appendChild(this.nodeEditorNameEl)
 
     this.nodeEditorDescriptionEl = document.createElement('div')
     this.nodeEditorDescriptionEl.classList.add('node-editor-description')
     this.nodeEditorEl.appendChild(this.nodeEditorDescriptionEl)
+
+    const outputParagraph = document.createElement('p')
 
     const outputLabel = document.createElement('label')
     outputLabel.appendChild(document.createTextNode('Output: '))
@@ -146,7 +148,24 @@ const App = class App {
     this.outputInputEl.value = 'None'
     this.outputInputEl.disabled = true
     outputLabel.appendChild(this.outputInputEl)
-    this.nodeEditorEl.appendChild(outputLabel)
+    outputParagraph.appendChild(outputLabel)
+
+    this.nodeEditorEl.appendChild(outputParagraph)
+
+    this.nodeEditorRemoveButton = document.createElement('button')
+    this.nodeEditorRemoveButton.appendChild(document.createTextNode('Remove'))
+    this.nodeEditorRemoveButton.addEventListener('click', () => {
+      this.handleNodeEditorRemovePressed()
+    })
+    this.nodeEditorEl.appendChild(this.nodeEditorRemoveButton)
+
+    const inputListTitle = document.createElement('h2')
+    inputListTitle.appendChild(document.createTextNode('Inputs:'))
+    this.nodeEditorEl.appendChild(inputListTitle)
+
+    this.nodeEditorInputsEl = document.createElement('div')
+    this.nodeEditorInputsEl.classList.add('node-editor-input-list')
+    this.nodeEditorEl.appendChild(this.nodeEditorInputsEl)
 
     this.initMouseListeners()
 
@@ -165,22 +184,31 @@ const App = class App {
 
     let mouseDown = false
     let didDrag = false
+    let lastWheelDate = 0
     let downEvt = null
+    let startedOnCanvas = false
 
     document.addEventListener('mousedown', evt => {
       mouseDown = true
       downEvt = evt
+      const mouseEl = document.elementFromPoint(evt.clientX, evt.clientY)
+
+      if (mouseEl === this.canvas) {
+        startedOnCanvas = true
+      }
     })
 
     document.addEventListener('mouseup', evt => {
-      this.handleMouseUp(evt)
+      if (startedOnCanvas) {
+        this.handleMouseUp(evt)
 
-      mouseDown = false
-
-      if (!didDrag) {
-        this.handleClicked(evt)
+        if (!didDrag) {
+          this.handleClicked(evt)
+        }
       }
 
+      mouseDown = false
+      startedOnCanvas = false
       didDrag = false
       dragAmount = 0
     })
@@ -189,7 +217,7 @@ const App = class App {
       this.mouseX = evt.clientX
       this.mouseY = evt.clientY
 
-      if (mouseDown) {
+      if (startedOnCanvas && mouseDown) {
         dragAmount += Math.abs(evt.movementX) + Math.abs(evt.movementY)
 
         if (dragAmount > dragThreshold) {
@@ -205,7 +233,30 @@ const App = class App {
     })
 
     document.addEventListener('wheel', evt => {
-      this.handleScrolled(evt)
+      // TODO: Panning probably gets stuck on elements when you scroll slowly
+      // because of this.. what we want to do is see when the user lifts their
+      // fingers off the trackpad, but an event like that might not actually
+      // exist (across browsers, anyways). Maybe we can just prevent the scroll
+      // event on the node editor from bubbling, but wouldn't really work if
+      // the app is anything but filling the whole screen.
+      /*
+      if (Date.now() - lastWheelDate > 50) {
+        const mouseEl = document.elementFromPoint(evt.clientX, evt.clientY)
+
+        startedOnCanvas = (mouseEl === this.canvas)
+      }
+
+      lastWheelDate = Date.now()
+
+      if (startedOnCanvas) {
+        this.handleScrolled(evt)
+      }
+      */
+
+      const mouseEl = document.elementFromPoint(evt.clientX, evt.clientY)
+      if (mouseEl === this.canvas) {
+        this.handleScrolled(evt)
+      }
     })
   }
 
@@ -233,7 +284,7 @@ const App = class App {
 
     if (inputUnderCursor && inputUnderCursor.input
         && inputUnderCursor.input.type === 'node') {
-      inputUnderCursor.node.inputs[inputUnderCursor.i] = undefined
+      inputUnderCursor.node.inputs[inputUnderCursor.i] = null
     }
   }
 
@@ -365,9 +416,13 @@ const App = class App {
     if (this.selectedNode) {
       this.selectedNode.selected = false
 
+      // Destroy old watchers.
       this.selectedNodeOutputWatcher()
       this.selectedNodeNameWatcher()
       this.selectedNodeDescriptionWatcher()
+      for (let watcher of this.selectedNodeInputWatchers) {
+        watcher()
+      }
 
       this.selectedNode = null
     }
@@ -398,6 +453,150 @@ const App = class App {
         this.nodeEditorDescriptionEl.innerText = newDescription
       }),
     true)
+
+    this.selectedNodeInputWatchers = []
+
+    while (this.nodeEditorInputsEl.firstChild) {
+      this.nodeEditorInputsEl.firstChild.remove()
+    }
+
+    for (let index = 0; index < node.inputSchema.length; index++) {
+      let input = node.inputs[index]
+      let schema = node.inputSchema[index]
+
+      let inputValueWatcher
+
+      const inputEl = document.createElement('div')
+
+      inputEl.appendChild(document.createTextNode(`${index}: `))
+
+      const html5Input = document.createElement('input')
+      html5Input.value = node.getInput(index)
+      inputEl.appendChild(html5Input)
+
+      if (schema.type === 'number') {
+        html5Input.type = 'number'
+      } else if (schema.type === 'string') {
+        html5Input.type = 'text'
+      } else if (schema.type === 'boolean') {
+        html5Input.type = 'text' // TODO: How to make a dropdown here?
+      }
+
+      let selectOptions = (
+        schema.select ||
+        (schema.type === 'boolean' ? [true, false] : null)
+      )
+
+      if (selectOptions) {
+        const select = document.createElement('select')
+        for (let optionString of selectOptions) {
+          const option = document.createElement('option')
+          option.appendChild(document.createTextNode(optionString))
+          select.appendChild(option)
+
+          if (
+            input && input.type === 'value' && input.value === optionString
+          ) {
+            option.selected = 'selected'
+          }
+        }
+
+        // TODO: Does this get garbage collected?
+        select.addEventListener('change', () => {
+          input = {type: 'value', value: selectOptions[select.selectedIndex]}
+          node.inputs[index] = input
+          setValue()
+          updateWatcher()
+        })
+
+        inputEl.appendChild(select)
+      }
+
+      // TODO: Does this listener get scrapped or not? Probably not. That's
+      // bad!
+      html5Input.addEventListener('change', () => {
+        input = {type: 'value', value: (
+          schema.type === 'string' ? html5Input.value :
+          schema.type === 'number' ? parseFloat(html5Input.value) :
+          schema.type === 'boolean' ? (
+            html5Input.value === 'true' ? true : false) :
+          html5Input.value
+        )}
+        node.inputs[index] = input
+        setValue()
+        updateWatcher()
+      })
+
+      const inputTypeLabel = document.createTextNode('')
+      inputEl.appendChild(inputTypeLabel)
+
+      const setValue = (newValue = node.getInput(index)) => {
+        if (document.activeElement === html5Input) {
+          html5Input.placeholder = newValue
+        } else {
+          html5Input.placeholder = ''
+          html5Input.value = newValue
+        }
+      }
+
+      const updateWatcher = () => {
+        if (inputValueWatcher) {
+          inputValueWatcher()
+        }
+
+        if (input === undefined || input === null) {
+          inputTypeLabel.textContent = ' (Unset)'
+        } else if (input.type === 'value') {
+          inputTypeLabel.textContent = ' (Value)'
+
+          // TODO: Can't test this yet.
+        } else if (input.type === 'node') {
+          inputTypeLabel.textContent = ' (Node)'
+
+          inputValueWatcher = observe.watch(input.node,
+            'output', observe.changed(newOutput => {
+              setValue(newOutput)
+            }))
+
+          this.selectedNodeInputWatchers.push(inputValueWatcher)
+        }
+      }
+
+      updateWatcher()
+
+      this.selectedNodeInputWatchers.push(observe.watch(node.inputs,
+        index, observe.changed(() => {
+          input = node.inputs[index]
+          updateWatcher()
+        })))
+
+      this.nodeEditorInputsEl.appendChild(inputEl)
+    }
+    this.nodeEditorInputsEl.firstChild
+  }
+
+  handleNodeEditorRemovePressed() {
+    this.removeNode(this.selectedNode)
+    this.deselect()
+  }
+
+  removeNode(nodeToRemove) {
+    const index = this.nodes.indexOf(nodeToRemove)
+
+    if (index >= 0) {
+      this.nodes.splice(index, 1)
+
+      // We don't want any of our remaining nodes to have connections to the
+      // node we just removed.
+      for (let node of this.nodes) {
+        for (let i = 0; i < node.inputs.length; i++) {
+          const input = node.inputs[i]
+          if (input && input.type === 'node' && input.node === nodeToRemove) {
+            node.inputs[i] = null
+          }
+        }
+      }
+    }
   }
 
   // Gets the value of a node input.

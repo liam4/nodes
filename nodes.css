@@ -17,6 +17,7 @@ body, html {
   height: 250px;
   padding: 8px;
   box-sizing: border-box;
+  overflow: scroll;
 
   background-color: rgba(255, 0, 200, 0.3);
   border: 2px solid rgba(255, 0, 200, 0.4);
@@ -46,6 +47,18 @@ body, html {
   color: white;
   border: 0;
   padding: 3px 5px;
+}
+
+.node-editor h1 {
+  font-size: 1.6em;
+  margin-top: 0.3em;
+  margin-bottom: 0.2em;
+}
+
+.node-editor h2 {
+  font-size: 1.4em;
+  margin-top: 0.3em;
+  margin-bottom: 0.2em;
 }
 
 .node-editor-name {

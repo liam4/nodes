@@ -1,5 +1,5 @@
-// TODO: Wave generator
-// TODO: Comparison operators!!
+// TODO: Wave generator. (Done!)
+// TODO: Comparison operators!! (Done!)
 
 const COLOR_CONTROL = [200, 131, 48]
 const COLOR_OUTPUT = [138, 35, 215]
@@ -16,8 +16,8 @@ App.nodes = {
         color: COLOR_CONTROL
       })
 
-      this.inputs = [
-        null // 0 - Activate (power)
+      this.inputSchema = [
+        {name: 'Activated?', type: 'boolean'}
       ]
     }
 
@@ -36,8 +36,8 @@ App.nodes = {
         color: COLOR_CONTROL
       })
 
-      this.inputs = [
-        null // 0 - Activate (power)
+      this.inputSchema = [
+        {name: 'Activated?', type: 'boolean'}
       ]
     }
 
@@ -69,9 +69,9 @@ App.nodes = {
         color: COLOR_OUTPUT
       })
 
-      this.inputs = [
-        null, // 0 - Activate (power)
-        null  // 1 - Value
+      this.inputSchema = [
+        {name: 'Activated?', type: 'boolean'},
+        {name: 'Value', type: 'string'}
       ]
     }
 
@@ -93,11 +93,11 @@ App.nodes = {
         color: COLOR_OPERATORS
       })
 
-      this.inputs = [
-        null, // 0 - Activate (power)
-        null, // 1 - Low-limit value
-        null, // 2 - High-limit value
-        null  // 3 - Incrementor (per second)
+      this.inputSchema = [
+        {name: 'Activated?', type: 'boolean'},
+        {name: 'Low limit', type: 'number'},
+        {name: 'High limit', type: 'number'},
+        {name: 'Rate (n/1s)', type: 'number'}
       ]
     }
 
@@ -131,11 +131,11 @@ App.nodes = {
         color: COLOR_OPERATORS
       })
 
-      this.inputs = [
-        null, // 0 - Activate (power)
-        null, // 1 - Comparison operator ('<', '>', '=')
-        null, // 2 - First value
-        null  // 3 - Second value
+      this.inputSchema = [
+        {name: 'Activated?', type: 'boolean'},
+        {name: 'Operator', type: 'string', select: ['<', '>', '=']},
+        {name: 'First value', type: 'number'},
+        {name: 'Second value', type: 'number'}
       ]
     }
 
@@ -166,15 +166,18 @@ App.nodes = {
         color: COLOR_OPERATORS
       })
 
-      this.inputs = [
-        null // 0 - Activate (power)
+      this.inputSchema = [
+        {name: 'Activated?', type: 'boolean'},
+        {name: 'Word list', type: 'string'}
       ]
     }
 
     execute() {
-      if (this.getInput(0)) {
-        const index = Math.floor(Math.random() * this.words.length)
-        this.output = this.words[index]
+      if (this.getInput(0) && this.getInput(1)) {
+        const words = this.getInput(1).split(',')
+
+        const index = Math.floor(Math.random() * words.length)
+        this.output = words[index]
       }
     }
   }
