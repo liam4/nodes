@@ -437,6 +437,7 @@ const App = class App {
     node.selected = true
     this.nodeEditorEl.classList.remove('no-selection')
     this.nodeEditorEl.scrollTop = 0
+    this.outputInputEl.value = 'None'
 
     this.selectedNodeOutputWatcher = observe.watch(node,
       'output', observe.changed(newOutput => {
@@ -470,7 +471,7 @@ const App = class App {
 
       const inputEl = document.createElement('div')
 
-      inputEl.appendChild(document.createTextNode(`${index}: `))
+      inputEl.appendChild(document.createTextNode(`${schema.name}: `))
 
       const html5Input = document.createElement('input')
       html5Input.value = node.getInput(index)
@@ -779,9 +780,8 @@ const App = class App {
 
 App.Node = class Node {
   constructor() {
-    this.inputs = [
-      {type: 'value', value: true}
-    ]
+    this.inputSchema = []
+    this.inputs = []
     this.width = 40
     this.height = 40
     this.x = 80

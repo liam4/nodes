@@ -15,10 +15,6 @@ App.nodes = {
         description: 'Always outputs true',
         color: COLOR_CONTROL
       })
-
-      this.inputSchema = [
-        {name: 'Activated?', type: 'boolean'}
-      ]
     }
 
     execute() {
@@ -59,14 +55,14 @@ App.nodes = {
     }
   },
 
-  EchoerNode: class extends App.Node {
+  MemoryNode: class extends App.Node {
     constructor() {
       super()
 
       Object.assign(this, {
-        name: 'Echoer',
-        description: 'Echoes and stores its input',
-        color: COLOR_OUTPUT
+        name: 'Memory',
+        description: 'Remembers its input until overwritten',
+        color: COLOR_CONTROL
       })
 
       this.inputSchema = [
@@ -78,29 +74,122 @@ App.nodes = {
     execute() {
       if (this.getInput(0)) {
         this.output = this.getInput(1)
-        console.log(this.output)
       }
     }
   },
 
-  AdderNode: class extends App.Node {
+  LoggerNode: class extends App.Node {
     constructor() {
       super()
 
       Object.assign(this, {
-        name: 'Adder',
-        description: 'Adds two numbers',
+        name: 'Logger',
+        description: 'Prints its input',
+        color: COLOR_OUTPUT
+      })
+
+      this.inputSchema = [
+        {name: 'Activated?', type: 'boolean'},
+        {name: 'Value', type: 'string'}
+      ]
+    }
+
+    execute() {
+      if (this.getInput(0)) {
+        console.log(this.getInput(1))
+      }
+    }
+  },
+
+  CalculatorNode: class extends App.Node {
+    constructor() {
+      super()
+
+      Object.assign(this, {
+        name: 'Calculator',
+        description: 'Performs a math operation on two numbers',
         color: COLOR_OPERATORS
       })
 
       this.inputSchema = [
+        {name: 'Operator', type: 'string', select: [
+          '+', '-', '/', '*', '^', '%'
+        ]},
         {name: 'First value', type: 'number'},
         {name: 'Second value', type: 'number'}
       ]
     }
 
     execute() {
-      this.output = this.getInput(0) + this.getInput(1)
+      const operator = this.getInput(0)
+      const a = parseFloat(this.getInput(1))
+      const b = parseFloat(this.getInput(2))
+
+      if (operator === '+') this.output = a + b
+      else if (operator === '-') this.output = a - b
+      else if (operator === '*') this.output = a * b
+      else if (operator === '/') this.output = a / b
+      else if (operator === '^') this.output = a ** b
+      else if (operator === '%') this.output = a % b
+      else this.output = 0
+    }
+  },
+
+  ComparisonNode: class extends App.Node {
+    constructor() {
+      super()
+
+      Object.assign(this, {
+        name: 'Comparison',
+        description: 'Compares two numbers',
+        color: COLOR_OPERATORS
+      })
+
+      this.inputSchema = [
+        {name: 'Operator', type: 'string', select: ['<', '>', '=']},
+        {name: 'First value', type: 'number'},
+        {name: 'Second value', type: 'number'}
+      ]
+    }
+
+    execute() {
+      const operator = this.getInput(0)
+      const value1 = this.getInput(1)
+      const value2 = this.getInput(2)
+
+      if (operator === '=') {
+        this.output = value1 === value2
+      } else if (operator === '<') {
+        this.output = value1 < value2
+      } else if (operator === '>') {
+        this.output = value1 > value2
+      }
+    }
+  },
+
+  ConditionalPickerNode: class extends App.Node {
+    constructor() {
+      super()
+
+      Object.assign(this, {
+        name: 'Conditional Picker',
+        description: 'Picks one value or another based on a condition',
+        color: COLOR_OPERATORS
+      })
+
+      this.inputSchema = [
+        {name: 'Condition', type: 'boolean'},
+        {name: 'True value', type: 'any'},
+        {name: 'False value', type: 'any'}
+      ]
+    }
+
+    execute() {
+      if (this.getInput(0) === true) {
+        this.output = this.getInput(1)
+      } else {
+        this.output = this.getInput(2)
+      }
     }
   },
 
@@ -142,38 +231,6 @@ App.nodes = {
     }
   },
 
-  ComparisonNode: class extends App.Node {
-    constructor() {
-      super()
-
-      Object.assign(this, {
-        name: 'Comparison',
-        description: 'Compares two numbers',
-        color: COLOR_OPERATORS
-      })
-
-      this.inputSchema = [
-        {name: 'Operator', type: 'string', select: ['<', '>', '=']},
-        {name: 'First value', type: 'number'},
-        {name: 'Second value', type: 'number'}
-      ]
-    }
-
-    execute() {
-      const operator = this.getInput(0)
-      const value1 = this.getInput(1)
-      const value2 = this.getInput(2)
-
-      if (operator === '=') {
-        this.output = value1 === value2
-      } else if (operator === '<') {
-        this.output = value1 < value2
-      } else if (operator === '>') {
-        this.output = value1 > value2
-      }
-    }
-  },
-
   RandomWordGeneratorNode: class extends App.Node {
     constructor() {
       super()
@@ -185,6 +242,7 @@ App.nodes = {
       })
 
       this.inputSchema = [
+        {name: 'Activated?', type: 'boolean'},
         {name: 'Word list', type: 'string'}
       ]
     }

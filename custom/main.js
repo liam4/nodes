@@ -36,7 +36,7 @@ convertToPulse.y = 50
 convertToPulse.inputs[0] = {type: 'node', node: greaterThanHalf}
 app.nodes.push(convertToPulse)
 
-const echoer = new App.nodes.EchoerNode()
+const echoer = new App.nodes.LoggerNode()
 echoer.x = 500
 echoer.y = 100
 echoer.inputs[0] = {type: 'node', node: convertToPulse}
@@ -69,9 +69,12 @@ const addPaletteButton = (name, nodeClass) => {
 
 addPaletteButton('Battery', App.nodes.BatteryNode)
 addPaletteButton('Pulsifier', App.nodes.PulsifierNode)
-addPaletteButton('Echoer', App.nodes.EchoerNode)
-addPaletteButton('Number Cycler', App.nodes.NumberCyclerNode)
+addPaletteButton('Memory', App.nodes.MemoryNode)
+addPaletteButton('Logger', App.nodes.LoggerNode)
+addPaletteButton('Calculator', App.nodes.CalculatorNode)
 addPaletteButton('Comparison', App.nodes.ComparisonNode)
+addPaletteButton('Conditional Picker', App.nodes.ConditionalPickerNode)
+addPaletteButton('Number Cycler', App.nodes.NumberCyclerNode)
 addPaletteButton('Random Word Generator', App.nodes.RandomWordGeneratorNode)
 
 const drawLoop = function() {
