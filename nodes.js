@@ -1,6 +1,7 @@
 // TODO: Wire glow-bubbles shouldn't appear when we're dragging a node.
-// TODO: Value-input controls.
+// TODO: Value-input controls. (Done!)
 // TODO: A palette, duh.
+// TODO: A way to select (and move) multiple nodes at a time.
 
 // ----
 // Retina devices use Stupid Hacks to make everything super high definition,
