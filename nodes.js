@@ -436,6 +436,7 @@ const App = class App {
     this.selectedNode = node
     node.selected = true
     this.nodeEditorEl.classList.remove('no-selection')
+    this.nodeEditorEl.scrollTop = 0
 
     this.selectedNodeOutputWatcher = observe.watch(node,
       'output', observe.changed(newOutput => {
