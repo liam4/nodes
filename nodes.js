@@ -1,3 +1,6 @@
+// TODO: Wire glow-bubbles shouldn't appear when we're dragging a node.
+// TODO: Value-input controls.
+
 // ----
 // Retina devices use Stupid Hacks to make everything super high definition,
 // but thankfully you can deal with those Stupid Hacks by multiplying
@@ -36,7 +39,6 @@ const observe = {
   watchersSymbol: Symbol('observe.watchersSymbol'),
 
   make: function(obj, prop, firstValue = undefined) {
-
     if (!(observe.watchersSymbol in obj)) {
       obj[observe.watchersSymbol] = new Map()
     }
@@ -282,16 +284,16 @@ const App = class App {
       ]
     } else {
       this.handleScrolled({
-        deltaX: evt.movementX,
-        deltaY: evt.movementY
+        deltaX: -evt.movementX,
+        deltaY: -evt.movementY
       })
     }
   }
 
   // Called when the user scrolls using the mousewheel or a trackpad.
   handleScrolled(evt) {
-    this.scrollX -= evt.deltaX
-    this.scrollY -= evt.deltaY
+    this.scrollX += evt.deltaX
+    this.scrollY += evt.deltaY
   }
 
   // Gets the node whose body is under the given position. If no such node
@@ -394,7 +396,7 @@ const App = class App {
 
   // Gets the value of a node input.
   getValueOfInput(input) {
-    if (typeof input !== 'object') {
+    if (!input || typeof input !== 'object') {
       return input
     } else if (input.type === 'node') {
       return input.node.output
@@ -406,9 +408,7 @@ const App = class App {
   // Executes every node once, in no particular order.
   execute() {
     for (let node of this.nodes) {
-      if (this.getValueOfInput(node.inputs[0])) {
-        node.execute()
-      }
+      node.execute()
     }
   }
 
@@ -603,92 +603,3 @@ App.Node = class Node {
     return this.y + this.height / 2
   }
 }
-
-// ----
-
-const app = new App()
-
-const battery = new App.Node()
-battery.name = 'Battery'
-battery.description = 'Always outputs true'
-battery.x = 100
-battery.y = 100
-battery.execute = function() {
-  this.output = true
-}
-app.nodes.push(battery)
-
-const convertToPulse = new App.Node()
-convertToPulse.name = 'Pulsifier'
-convertToPulse.description = 'Converts input to a pulse'
-convertToPulse.x = 200
-convertToPulse.y = 50
-convertToPulse.inputs[0] = {type: 'node', node: battery}
-convertToPulse.execute = function() {
-  if (this.wasTriggered) {
-    this.output = false
-  }
-
-  if (this.getInput(0)) {
-    if (!this.wasTriggered) {
-      this.wasTriggered = true
-      this.output = true
-    }
-  } else {
-    if (this.wasTriggered) {
-      this.wasTriggered = false
-    }
-  }
-}
-app.nodes.push(convertToPulse)
-
-const textNode = new App.Node()
-textNode.name = 'Random Word Generator'
-textNode.description = 'Outputs a random word'
-textNode.x = 200
-textNode.y = 150
-textNode.words = ['Apple', 'Banana', 'Chair', 'Rainbow', 'Unicorn']
-textNode.inputs[0] = {type: 'node', node: battery}
-textNode.execute = function() {
-  if (this.getInput(0)) {
-    const index = Math.floor(Math.random() * this.words.length)
-    this.output = this.words[index]
-  }
-}
-app.nodes.push(textNode)
-
-const echoer = new App.Node()
-echoer.name = 'Echoer'
-echoer.description = 'Echoes its input'
-echoer.x = 300
-echoer.y = 200
-echoer.inputs = [
-  {type: 'node', node: convertToPulse},
-  undefined
-]
-// echoer.inputs[1] = {type: 'node', node: textNode}
-echoer.execute = function() {
-  this.output = this.getInput(1)
-  console.log(this.output)
-}
-app.nodes.push(echoer)
-
-app.deselect()
-battery        .color = [200, 131, 48]
-convertToPulse .color = [225, 169, 26]
-echoer         .color = [138, 35, 215]
-textNode       .color = [92, 138, 18]
-
-const drawLoop = function() {
-  app.draw()
-  requestAnimationFrame(drawLoop)
-}
-
-drawLoop()
-
-const executeLoop = function() {
-  app.execute()
-  setTimeout(executeLoop, 20)
-}
-
-executeLoop()
