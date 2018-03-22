@@ -8,7 +8,7 @@ app.nodes.push(battery)
 const textNode = new App.nodes.RandomWordGeneratorNode()
 textNode.x = 200
 textNode.y = 150
-textNode.inputs[0] = {type: 'node', node: battery}
+textNode.inputs[0] = {type: 'node', node: battery, outputIndex: 0}
 textNode.inputs[1] = {
   type: 'value', value: 'Apple,Banana,Chair,Rainbow,Unicorn'}
 app.nodes.push(textNode)
@@ -16,7 +16,7 @@ app.nodes.push(textNode)
 const cycler = new App.nodes.NumberCyclerNode()
 cycler.x = 200
 cycler.y = 50
-cycler.inputs[0] = {type: 'node', node: battery}
+cycler.inputs[0] = {type: 'node', node: battery, outputIndex: 0}
 cycler.inputs[1] = {type: 'value', value: 0}
 cycler.inputs[2] = {type: 'value', value: 1}
 cycler.inputs[3] = {type: 'value', value: 0.5}
@@ -26,21 +26,21 @@ const greaterThanHalf = new App.nodes.ComparisonNode()
 greaterThanHalf.x = 300
 greaterThanHalf.y = 50
 greaterThanHalf.inputs[0] = {type: 'value', value: '>'}
-greaterThanHalf.inputs[1] = {type: 'node', node: cycler}
+greaterThanHalf.inputs[1] = {type: 'node', node: cycler, outputIndex: 0}
 greaterThanHalf.inputs[2] = {type: 'value', value: 0.5}
 app.nodes.push(greaterThanHalf)
 
 const convertToPulse = new App.nodes.PulsifierNode()
 convertToPulse.x = 400
 convertToPulse.y = 50
-convertToPulse.inputs[0] = {type: 'node', node: greaterThanHalf}
+convertToPulse.inputs[0] = {type: 'node', node: greaterThanHalf, outputIndex: 0}
 app.nodes.push(convertToPulse)
 
 const echoer = new App.nodes.LoggerNode()
 echoer.x = 500
 echoer.y = 100
-echoer.inputs[0] = {type: 'node', node: convertToPulse}
-echoer.inputs[1] = {type: 'node', node: textNode}
+echoer.inputs[0] = {type: 'node', node: convertToPulse, outputIndex: 0}
+echoer.inputs[1] = {type: 'node', node: textNode, outputIndex: 0}
 app.nodes.push(echoer)
 
 app.appendElementsTo(document.body)

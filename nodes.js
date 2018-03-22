@@ -2,6 +2,9 @@
 // TODO: Value-input controls. (Done!)
 // TODO: A palette, duh.
 // TODO: A way to select (and move) multiple nodes at a time.
+// TODO: A way to give a node multiple outputs. (Done!)
+// TODO: A way to give node outputs types.
+// TODO: Tooltips showing info about hovered inputs/outputs.
 
 // ----
 // Retina devices use Stupid Hacks to make everything super high definition,
@@ -140,18 +143,13 @@ const App = class App {
     this.nodeEditorDescriptionEl.classList.add('node-editor-description')
     this.nodeEditorEl.appendChild(this.nodeEditorDescriptionEl)
 
-    const outputParagraph = document.createElement('p')
+    const outputListTitle = document.createElement('h2')
+    outputListTitle.appendChild(document.createTextNode('Outputs:'))
+    this.nodeEditorEl.appendChild(outputListTitle)
 
-    const outputLabel = document.createElement('label')
-    outputLabel.appendChild(document.createTextNode('Output: '))
-    this.outputInputEl = document.createElement('input')
-    this.outputInputEl.type = 'text'
-    this.outputInputEl.value = 'None'
-    this.outputInputEl.disabled = true
-    outputLabel.appendChild(this.outputInputEl)
-    outputParagraph.appendChild(outputLabel)
-
-    this.nodeEditorEl.appendChild(outputParagraph)
+    this.nodeEditorOutputsEl = document.createElement('div')
+    this.nodeEditorOutputsEl.classList.add('node-editor-output-list')
+    this.nodeEditorEl.appendChild(this.nodeEditorOutputsEl)
 
     this.nodeEditorRemoveButton = document.createElement('button')
     this.nodeEditorRemoveButton.appendChild(document.createTextNode('Remove'))
@@ -261,7 +259,7 @@ const App = class App {
     })
   }
 
-  // Called when the user releases the mouse cursor, if tbe cursor wasn't
+  // Called when the user releases the mouse cursor, if the cursor wasn't
   // dragged.
   handleClicked(evt) {
     const mx = evt.clientX
@@ -283,6 +281,8 @@ const App = class App {
       }
     }
 
+    console.log(':boom:', inputUnderCursor)
+
     if (inputUnderCursor && inputUnderCursor.input
         && inputUnderCursor.input.type === 'node') {
       inputUnderCursor.node.inputs[inputUnderCursor.i] = null
@@ -298,7 +298,8 @@ const App = class App {
       if (inputUnderWire) {
         inputUnderWire.node.inputs[inputUnderWire.i] = {
           type: 'node',
-          node: this.draggingOutput.node
+          node: this.draggingOutput.node,
+          outputIndex: this.draggingOutput.index
         }
       }
     }
@@ -323,9 +324,10 @@ const App = class App {
     if (nodeUnderCursor) {
       this.draggingNode = nodeUnderCursor
     } else if (outputUnderCursor) {
+      const { node, index } = outputUnderCursor
       this.draggingOutput = {
-        node: outputUnderCursor,
-        pos: [this.mouseX, this.mouseY]
+        node, index,
+        pos: [this.mouseX, this.mouseY],
       }
     }
   }
@@ -374,16 +376,24 @@ const App = class App {
   // Gets the node whose output wire connection is under the given position.
   // If no such node exists, return null.
   getOutputUnderPos(x, y) {
-    const nodes = this.nodes.filter(node => {
-      const [outX, outY] = this.scrollify(this.getOutputWirePos(node))
-      return (
-        x > outX && x < outX + 10 &&
-        y > outY - 10 && y < outY + 10
-      )
+    const nodes = this.nodes.map(node => {
+      return {node, outputHovers:
+        new Array(node.outputSchema.length).fill(0).map((_, i) => i).filter(i => {
+          const [outX, outY] = this.scrollify(this.getOutputWirePos(node, i))
+          return (
+            x > outX && x < outX + 10 &&
+            y > outY - 10 && y < outY + 10
+          )
+        })
+      }
     })
 
-    if (nodes.length) {
-      return nodes[nodes.length - 1]
+    const nodesWithOutputHovers = nodes.filter(n => n.outputHovers.length)
+
+    if (nodesWithOutputHovers.length) {
+      const { node, outputHovers } = nodesWithOutputHovers[nodesWithOutputHovers.length - 1]
+      const index = outputHovers[outputHovers.length - 1]
+      return {node, index}
     } else {
       return null
     }
@@ -391,15 +401,16 @@ const App = class App {
 
   // Gets the input which is under the given position. If no such node
   // exists, return null. The return object is an object in the form of
-  // {i: inputIndex, input: inputObject, node: parentNode}.
+  // {i: inputIndex, input: inputObject, inputSchema, node: parentNode}.
   getInputUnderPos(x, y) {
     const objects = this.nodes.map(node => (
-      node.inputs.map((input, i) => {
+      node.inputSchema.map((inputSchema, i) => {
         const [posX, posY] = this.scrollify(this.getInputWirePos(node, i))
+        const input = node.inputs[i]
         return (
           x > posX - 10 && x < posX &&
           y > posY - 10 && y < posY + 10
-        ) ? {input, i, node} : false
+        ) ? {inputSchema, input, i, node} : false
       }).filter(input => !!input)
     )).reduce((arr, inputs) => arr.concat(inputs), [])
 
@@ -418,10 +429,9 @@ const App = class App {
       this.selectedNode.selected = false
 
       // Destroy old watchers.
-      this.selectedNodeOutputWatcher()
       this.selectedNodeNameWatcher()
       this.selectedNodeDescriptionWatcher()
-      for (let watcher of this.selectedNodeInputWatchers) {
+      for (const watcher of this.selectedNodeIOWatchers) {
         watcher()
       }
 
@@ -437,13 +447,6 @@ const App = class App {
     node.selected = true
     this.nodeEditorEl.classList.remove('no-selection')
     this.nodeEditorEl.scrollTop = 0
-    this.outputInputEl.value = 'None'
-
-    this.selectedNodeOutputWatcher = observe.watch(node,
-      'output', observe.changed(newOutput => {
-        this.outputInputEl.value = newOutput
-      }),
-    true)
 
     this.selectedNodeNameWatcher = observe.watch(node,
       'name', observe.changed(newName => {
@@ -457,15 +460,19 @@ const App = class App {
       }),
     true)
 
-    this.selectedNodeInputWatchers = []
+    this.selectedNodeIOWatchers = []
 
     while (this.nodeEditorInputsEl.firstChild) {
       this.nodeEditorInputsEl.firstChild.remove()
     }
 
+    while (this.nodeEditorOutputsEl.firstChild) {
+      this.nodeEditorOutputsEl.firstChild.remove()
+    }
+
     for (let index = 0; index < node.inputSchema.length; index++) {
       let input = node.inputs[index]
-      let schema = node.inputSchema[index]
+      const schema = node.inputSchema[index]
 
       let inputValueWatcher
 
@@ -479,6 +486,7 @@ const App = class App {
 
       if (schema.type === 'number') {
         html5Input.type = 'number'
+        html5Input.step = 'any'
       } else if (schema.type === 'string') {
         html5Input.type = 'text'
       } else if (schema.type === 'boolean') {
@@ -556,18 +564,18 @@ const App = class App {
         } else if (input.type === 'node') {
           inputTypeLabel.textContent = ' (Node)'
 
-          inputValueWatcher = observe.watch(input.node,
-            'output', observe.changed(newOutput => {
+          inputValueWatcher = observe.watch(input.node.outputs,
+            input.outputIndex, observe.changed(newOutput => {
               setValue(newOutput)
             }))
 
-          this.selectedNodeInputWatchers.push(inputValueWatcher)
+          this.selectedNodeIOWatchers.push(inputValueWatcher)
         }
       }
 
       updateWatcher()
 
-      this.selectedNodeInputWatchers.push(observe.watch(node.inputs,
+      this.selectedNodeIOWatchers.push(observe.watch(node.inputs,
         index, observe.changed(() => {
           input = node.inputs[index]
           updateWatcher()
@@ -575,7 +583,30 @@ const App = class App {
 
       this.nodeEditorInputsEl.appendChild(inputEl)
     }
-    this.nodeEditorInputsEl.firstChild
+
+    for (let index = 0; index < node.outputSchema.length; index++) {
+      const output = node.outputs[index]
+      const schema = node.outputSchema[index]
+
+      let outputValueWatcher
+
+      const outputEl = document.createElement('div')
+
+      outputEl.appendChild(document.createTextNode(`${schema.name}: `))
+
+      const html5Input = document.createElement('input')
+      html5Input.value = node.getInput(index)
+      html5Input.disabled = true
+      outputEl.appendChild(html5Input)
+
+      this.selectedNodeIOWatchers.push(observe.watch(node.outputs, index,
+        observe.changed(newOutput => {
+          html5Input.value = newOutput
+        })
+      ))
+
+      this.nodeEditorOutputsEl.appendChild(outputEl)
+    }
   }
 
   handleNodeEditorRemovePressed() {
@@ -607,7 +638,7 @@ const App = class App {
     if (!input || typeof input !== 'object') {
       return input
     } else if (input.type === 'node') {
-      return input.node.output
+      return input.node.outputs[input.outputIndex]
     } else if (input.type === 'value') {
       return input.value
     }
@@ -621,24 +652,24 @@ const App = class App {
   }
 
   // Gets the output wire connection position of a node.
-  getOutputWirePos(node) {
-    return [
-      node.x + node.width,
-      node.centerY
-    ]
+  getOutputWirePos(node, i) {
+    return [node.x + node.width, this.getWireY(node, i, node.outputSchema.length)]
   }
 
   // Gets the input wire conenction position of a node, given the input's
   // index.
   getInputWirePos(node, i) {
-    return [
-      node.x,
-      (
-        node.y +
-        0.15 * node.height +
-        ((0.7 * node.height) / node.inputs.length) * (i + 0.5)
-      )
-    ]
+    return [node.x, this.getWireY(node, i, node.inputSchema.length)]
+  }
+
+  // Gets the Y position where a wire connected to the given node at the given
+  // input/output index would be.
+  getWireY(node, i, length) {
+    return (
+      node.y +
+      0.15 * node.height +
+      ((0.7 * node.height) / length) * (i + 0.5)
+    )
   }
 
   // Draws everything. Should be called once every browser animation frame.
@@ -656,12 +687,12 @@ const App = class App {
     for (let node of this.nodes) {
       const nodeInputs = node.inputs.filter(
         inp => inp && inp.type === 'node')
-      for (let input of nodeInputs) {
 
-        const i = node.inputs.indexOf(input)
+      for (let i = 0; i < nodeInputs.length; i++) {
+        const input = nodeInputs[i]
 
         // Powered connections should have a lighter color..
-        if (input.node.output) {
+        if (this.getValueOfInput(input)) {
           ctx.strokeStyle = '#5A5'
         } else {
           ctx.strokeStyle = '#353'
@@ -670,7 +701,7 @@ const App = class App {
         ctx.lineWidth = 5
 
         const [startX, startY] = this.scrollify(
-          this.getOutputWirePos(input.node))
+          this.getOutputWirePos(input.node, input.outputIndex))
         const [endX, endY] = this.scrollify(
           this.getInputWirePos(node, i))
 
@@ -716,8 +747,9 @@ const App = class App {
         break drawGrabBubble
       }
 
+      const { node, index } = outputUnderCursor
       const [outX, outY] = this.scrollify(
-        this.getOutputWirePos(outputUnderCursor))
+        this.getOutputWirePos(node, index))
 
       ctx.fillStyle = 'white'
       ctx.filter = 'blur(3px)'
@@ -730,7 +762,7 @@ const App = class App {
       ctx.strokeStyle = 'rgba(75, 150, 75, 0.5)'
       ctx.lineWidth = 5
       const [startX, startY] = this.scrollify(this.getOutputWirePos(
-        this.draggingOutput.node))
+        this.draggingOutput.node, this.draggingOutput.index))
       const [endX, endY] = this.draggingOutput.pos
       drawLine(ctx, startX, startY, endX, endY)
 
@@ -790,6 +822,8 @@ App.Node = class Node {
   constructor() {
     this.inputSchema = []
     this.inputs = []
+    this.outputSchema = []
+    this.outputs = []
     this.width = 40
     this.height = 40
     this.x = 80
