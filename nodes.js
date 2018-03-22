@@ -1,4 +1,4 @@
-// TODO: Wire glow-bubbles shouldn't appear when we're dragging a node.
+// TODO: Wire glow-bubbles shouldn't appear when we're dragging a node. (Done!)
 // TODO: Value-input controls. (Done!)
 // TODO: A palette, duh.
 // TODO: A way to select (and move) multiple nodes at a time.
@@ -707,7 +707,15 @@ const App = class App {
     const outputUnderCursor = this.getOutputUnderPos(
       this.mouseX, this.mouseY)
 
-    if (outputUnderCursor) {
+    if (outputUnderCursor) drawGrabBubble: {
+      // Only draw it if we aren't dragging anything else already, though.
+      // The point of the bubble is to show something can be pulled out of
+      // that spot, but obviously we can't start dragging something if we're
+      // already dragging another thing.
+      if (this.draggingNode || this.draggingOutput) {
+        break drawGrabBubble
+      }
+
       const [outX, outY] = this.scrollify(
         this.getOutputWirePos(outputUnderCursor))
 
